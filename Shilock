@@ -1,0 +1,93 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local UserGameSettings = UserSettings():GetService("UserGameSettings")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local isShiftLockEnabled = false
+local OFFSET_VAL = 1.7
+
+pcall(function()
+    PlayerGui.CustomShiftLock:Destroy()
+end)
+
+
+local ShiftLockGui = Instance.new("ScreenGui")
+ShiftLockGui.Name = "CustomShiftLock"
+ShiftLockGui.ResetOnSpawn = false
+ShiftLockGui.Parent = PlayerGui
+
+local Crosshair = Instance.new("ImageLabel")
+Crosshair.Name = "Crosshair"
+Crosshair.Parent = ShiftLockGui
+Crosshair.AnchorPoint = Vector2.new(0.5, 0.5)
+Crosshair.Position = UDim2.new(0.5, 0, 0.5, 0)
+Crosshair.Size = UDim2.new(0, 32, 0, 32)
+Crosshair.BackgroundTransparency = 1
+Crosshair.Image = "rbxasset://textures/MouseLockedCursor.png"
+Crosshair.Visible = false
+
+
+local function updateShiftLock()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+
+    if not hum then
+        return
+    end
+
+    if isShiftLockEnabled then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+
+        pcall(function()
+            UserGameSettings.RotationType = Enum.RotationType.CameraRelative
+        end)
+
+        hum.CameraOffset = Vector3.new(OFFSET_VAL, 0, 0)
+
+        Crosshair.Visible = true
+    else
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+
+        hum.CameraOffset = Vector3.new(0,0,0)
+
+        Crosshair.Visible = false
+    end
+end
+
+
+local function ToggleShiftLock()
+    isShiftLockEnabled = not isShiftLockEnabled
+    updateShiftLock()
+end
+
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.LeftControl then
+        ToggleShiftLock()
+    end
+end)
+
+-- respawn
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+
+    if isShiftLockEnabled then
+        updateShiftLock()
+    end
+end)
+
+-- vlw www
+pcall(function()
+    LocalPlayer.DevEnableMouseLock = false
+end)
