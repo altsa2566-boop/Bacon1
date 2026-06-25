@@ -35,24 +35,24 @@ Crosshair.Image = "rbxasset://textures/MouseLockedCursor.png"
 Crosshair.Visible = false
 Crosshair.ZIndex = 999
 
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "StatusLabel"
-StatusLabel.Parent = ShiftLockGui
-StatusLabel.AnchorPoint = Vector2.new(1, 0)
-StatusLabel.Position = UDim2.new(1, -10, 0, 10)
-StatusLabel.Size = UDim2.new(0, 150, 0, 30)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-StatusLabel.BackgroundTransparency = 0.5
-StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusLabel.TextSize = 14
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
-StatusLabel.TextYAlignment = Enum.TextYAlignment.Top
-StatusLabel.Visible = false
-StatusLabel.ZIndex = 999
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 5)
-corner.Parent = StatusLabel
+local function DisableShiftLock()
+    isShiftLockEnabled = false
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    
+    pcall(function()
+        UserGameSettings.RotationType = Enum.RotationType.MovementRelative
+    end)
+    
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.CameraOffset = Vector3.new(0, 0, 0)
+        end
+    end
+    
+    Crosshair.Visible = false
+end
 
 local function updateShiftLock()
     local char = LocalPlayer.Character
@@ -60,6 +60,11 @@ local function updateShiftLock()
     
     local hum = char:FindFirstChild("Humanoid")
     if not hum then return end
+    
+    if hum.Health <= 0 then
+        DisableShiftLock()
+        return
+    end
 
     if isShiftLockEnabled then
         UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
@@ -70,9 +75,6 @@ local function updateShiftLock()
 
         hum.CameraOffset = Vector3.new(OFFSET_VAL, 0, 0)
         Crosshair.Visible = true
-        StatusLabel.Visible = true
-        StatusLabel.Text = "✓ SHIFT LOCK ON"
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     else
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
@@ -82,18 +84,12 @@ local function updateShiftLock()
 
         hum.CameraOffset = Vector3.new(0, 0, 0)
         Crosshair.Visible = false
-        StatusLabel.Visible = true
-        StatusLabel.Text = "✗ SHIFT LOCK OFF"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     end
 end
 
 local function ToggleShiftLock()
     isShiftLockEnabled = not isShiftLockEnabled
     updateShiftLock()
-    
-    task.wait(1)
-    StatusLabel.Visible = false
 end
 
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -105,9 +101,19 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
+    task.wait(0.5)
+    DisableShiftLock()
+end)
+
+RunService.RenderStepped:Connect(function()
     if isShiftLockEnabled then
-        updateShiftLock()
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum and hum.Health <= 0 then
+                DisableShiftLock()
+            end
+        end
     end
 end)
 
@@ -115,7 +121,6 @@ pcall(function()
     LocalPlayer.DevEnableMouseLock = false
 end)
 
--- Inicialização
 if LocalPlayer.Character then
     updateShiftLock()
 end
